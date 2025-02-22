@@ -6,6 +6,7 @@ use crate::{
 use std::cmp;
 use std::sync::mpsc;
 use std::time::{SystemTime, UNIX_EPOCH};
+use windows_capture::capture::Context;
 use windows_capture::{
     capture::{CaptureControl, GraphicsCaptureApiHandler},
     frame::Frame as WCFrame,
@@ -14,7 +15,6 @@ use windows_capture::{
     settings::{ColorFormat, CursorCaptureSettings, DrawBorderSettings, Settings as WCSettings},
     window::Window as WCWindow,
 };
-use windows_capture::capture::Context;
 
 #[derive(Debug)]
 struct Capturer {
@@ -152,11 +152,16 @@ pub fn create_capturer(options: &Options, tx: mpsc::Sender<Frame>) -> WCStream {
         false => CursorCaptureSettings::WithoutCursor,
     };
 
+    let show_highlight = match options.show_highlight {
+        true => DrawBorderSettings::WithBorder,
+        false => DrawBorderSettings::WithoutBorder,
+    };
+
     let settings = match target {
         Target::Display(display) => Settings::Display(WCSettings::new(
             WCMonitor::from_raw_hmonitor(display.raw_handle.0),
             show_cursor,
-            DrawBorderSettings::Default,
+            show_highlight,
             color_format,
             FlagStruct {
                 tx,
@@ -166,7 +171,7 @@ pub fn create_capturer(options: &Options, tx: mpsc::Sender<Frame>) -> WCStream {
         Target::Window(window) => Settings::Window(WCSettings::new(
             WCWindow::from_raw_hwnd(window.raw_handle.0),
             show_cursor,
-            DrawBorderSettings::Default,
+            show_highlight,
             color_format,
             FlagStruct {
                 tx,
